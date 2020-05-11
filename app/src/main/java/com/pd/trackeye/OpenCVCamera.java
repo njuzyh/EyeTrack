@@ -71,7 +71,8 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
     protected int iris_pixel = 0;
     private int LeftThreshold, RightThreshold, UpThreshold, DownThreshold;
     private int direction;
-    private int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+    private int left_iris_x, left_iris_y, right_iris_x, right_iris_y;
+    private int pre_left_x, pre_left_y, pre_right_x, pre_right_y;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -190,14 +191,22 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
     @RequiresApi(api = Build.VERSION_CODES.N)
     private void detectFace(Rect[] Face) {
         Log.e(TAG, "find Face" + Face.length);
+        int i = 1;
         for (Rect rect : Face) {
+            if(i > 1)
+                break;
+            left_iris_x = rect.x;
+            left_iris_y = rect.y;
+            right_iris_x = rect.x;
+            right_iris_y = rect.y;
+
             rect.height = Double.valueOf(rect.height / 1.5).intValue();
             Mat mat = new Mat(mGray, rect);
             Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.RGB_565);
             Utils.matToBitmap(mat, bmp);
             mBitmap = bmp;
             //saveImageToGallery(mBitmap);
-            Log.e(TAG, "Face saved successfully ");
+            //Log.e(TAG, "Face saved successfully ");
 
             MatOfRect eyes = new MatOfRect();
             leftClassifier.detectMultiScale(mat, eyes, 1.1, 2, 2, m65Size, mDefault);
@@ -207,13 +216,17 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
             rightClassifier.detectMultiScale(mat, eyes, 1.1, 2, 2, m65Size, mDefault);
             rightEyeArray = eyes.toArray();
             detectEye(rightEyeArray, mat, 1);
+            i++;
         }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private void detectEye(Rect[] EyeArray, Mat mat, int flag) {
         Log.e(TAG, "detect Eyes" + EyeArray.length);
+        int i = 1;
         for (Rect rect : EyeArray) {
+            if(i > 1)
+                break;
             Mat tmp = new Mat(mat, rect);
             Bitmap bmp = Bitmap.createBitmap(tmp.cols(), tmp.rows(), Bitmap.Config.RGB_565);
             Utils.matToBitmap(tmp, bmp);
@@ -221,14 +234,37 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
             iris_pixel = calculateEyeCenter(mBitmap, mGradThresh, mDThresh);
             int x_gaze = iris_pixel % mBitmap.getWidth();
             int y_gaze = iris_pixel / mBitmap.getWidth();
-            getDirection(x_gaze, y_gaze);
-            //getEyeCorner();
-            mBitmap = getIris(mBitmap, x_gaze, y_gaze);
-            saveImageToGallery(mBitmap);
             if (flag == 0)
-                Log.e("Eye", "Left Eye saved successfully " + x_gaze + " " + y_gaze);
-            else
-                Log.e("Eye", "Right Eye saved successfully " + x_gaze + " " + y_gaze);
+            {
+                left_iris_x += (rect.x + x_gaze);
+                left_iris_y += (rect.y + y_gaze);
+                Log.e("Eye", "Left Eye saved successfully " + left_iris_x + " " + left_iris_y);
+                getDirection(left_iris_x, left_iris_y, pre_left_x, pre_left_y);
+                pre_left_x = left_iris_x;
+                pre_left_y = left_iris_y;
+                mBitmap = Bitmap.createBitmap(mGray.width(), mGray.height(), Bitmap.Config.RGB_565);
+                Utils.matToBitmap(mGray, mBitmap);
+                mBitmap = getIris(mBitmap, left_iris_x, left_iris_y);
+                saveImageToGallery(mBitmap);
+            }
+            else {
+                right_iris_x += (rect.x + x_gaze);
+                right_iris_y += (rect.y + y_gaze);
+                Log.e("Eye", "Right Eye saved successfully " + right_iris_x + " " + right_iris_y);
+                getDirection(right_iris_x, right_iris_y, pre_right_x, pre_right_y);
+                pre_right_x = right_iris_x;
+                pre_right_y = right_iris_y;
+                mBitmap = Bitmap.createBitmap(mGray.width(), mGray.height(), Bitmap.Config.RGB_565);
+                Utils.matToBitmap(mGray, mBitmap);
+                mBitmap = getIris(mBitmap, right_iris_x, right_iris_y);
+                saveImageToGallery(mBitmap);
+            }
+            //getDirection(x_gaze, y_gaze);
+            //getEyeCorner();
+//            mBitmap = bmp;
+//            mBitmap = getIris(mBitmap, x_gaze, y_gaze);
+//            saveImageToGallery(mBitmap);
+            i++;
         }
     }
 
@@ -247,21 +283,31 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
         Utils.matToBitmap(dst, mBitmap);//将Mat转为Bitmap
     }
 
-    private void getDirection(int x, int y) {
+    private void getDirection(int x1, int y1, int x2, int y2) {
+        if(x1 == x2 && y1 == y2)
+            return ;
         int width = mBitmap.getWidth();
         int height = mBitmap.getHeight();
-        LeftThreshold = width / 3;
-        RightThreshold = width * 2 / 3;
-        UpThreshold = height / 3;
-        DownThreshold = height * 2 / 3;
-        if(x < LeftThreshold)
+        int RowThreshold = width / 4;
+        int ColThreshold = height / 3;
+        if(x2 - x1 > RowThreshold && Math.abs(y1 - y2) <= ColThreshold)
             direction = 0;
-        else if(x > RightThreshold)
+        else if(x1 - x2 > RowThreshold && Math.abs(y1 - y2) <= ColThreshold)
             direction = 1;
-        if(y < UpThreshold)
+        else if(y2 - y1 > ColThreshold && Math.abs(x1 - x2) <= RowThreshold)
             direction = 2;
-        else if(y > DownThreshold)
+        else if(y1 - y2 > ColThreshold && Math.abs(x1 - x2) <= RowThreshold)
             direction = 3;
+        else
+            direction = 4;
+//        if(x < LeftThreshold)
+//            direction = 0;
+//        else if(x > RightThreshold)
+//            direction = 1;
+//        if(y < UpThreshold)
+//            direction = 2;
+//        else if(y > DownThreshold)
+//            direction = 3;
     }
 
     private Bitmap getIris(Bitmap bmp, float x, float y){
@@ -283,6 +329,7 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
                     paint.setColor(Color.BLUE);
                     break;
                 default:
+                    paint.setColor(Color.MAGENTA);
                     break;
             }
             c.drawBitmap(bmp, new Matrix(), null);
