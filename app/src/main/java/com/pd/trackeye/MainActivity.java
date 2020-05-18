@@ -1,12 +1,17 @@
 package com.pd.trackeye;
 
 import android.Manifest;
+import android.app.ActivityManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import com.androidhiddencamera.HiddenCameraFragment;
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.MultiProcessor;
@@ -30,6 +36,7 @@ import org.opencv.android.OpenCVLoader;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     VideoView videoView;
     //EditText textView;
     Button start;
+    private HiddenCameraFragment mHiddenCameraFragment;
 
     //For looking logs
     ArrayAdapter adapter;
@@ -48,28 +56,61 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        requestPermission();
 
         findViewById(R.id.start).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, OpenCVCamera.class));
+//                startActivity(new Intent(MainActivity.this, OpenCVCamera.class));
+                if (isServiceRunning("com.pd.trackeye.OpenCVCameraService")) {
+                    Log.e("MainActivity", "have service already");
+                    return;
+                }
+                if (mHiddenCameraFragment != null) {    //Remove fragment from container if present
+                    getSupportFragmentManager()
+                            .beginTransaction()
+                            .remove(mHiddenCameraFragment)
+                            .commit();
+                    mHiddenCameraFragment = null;
+                }
+
+                startService(new Intent(MainActivity.this, BackCameraService.class));
             }
         });
 
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
-            Toast.makeText(this, "Grant Permission and restart app", Toast.LENGTH_SHORT).show();
-        }
-        else {
-            videoView = findViewById(R.id.videoView);
-            //textView = findViewById(R.id.textView);
-            adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, list);
-            videoView.setVideoURI(Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.videoplayback));
-            videoView.start();
-            //createCameraSource();
-        }
+        videoView = findViewById(R.id.videoView);
+        //textView = findViewById(R.id.textView);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, list);
+        videoView.setVideoURI(Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.videoplayback));
+        videoView.start();
+        //createCameraSource();
     }
 
+    private boolean isServiceRunning(String className) {
+        ActivityManager am = (ActivityManager)getSystemService(ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> serviceInfos=
+                am.getRunningServices(Integer.MAX_VALUE);
+        for (int i = 0; i < serviceInfos.size(); i++) {
+            if (serviceInfos.get(i).service.getClassName().equals(className)) {
+//                Log.e("ClassName", serviceInfos.get(i).service.getClassName());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void requestPermission() {
+        int permission = ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // 请求权限
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},10);
+        }
+        permission = ActivityCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
+        }
+    }
 
     //This class will use google vision api to detect eyes
 //    private class EyesTracker extends Tracker<Face> {
@@ -198,9 +239,28 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (mHiddenCameraFragment != null) {    //Remove fragment from container if present
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .remove(mHiddenCameraFragment)
+                    .commit();
+            mHiddenCameraFragment = null;
+        }
         super.onDestroy();
 //        if (cameraSource!=null) {
 //            cameraSource.release();
 //        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mHiddenCameraFragment != null) {    //Remove fragment from container if present
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .remove(mHiddenCameraFragment)
+                    .commit();
+            mHiddenCameraFragment = null;
+        }
+        super.onBackPressed();
     }
 }

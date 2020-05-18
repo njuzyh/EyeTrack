@@ -2,4 +2,9 @@
     <string name="app_name">Track Eyes</string>
     <string name="face_not_found">Status: Face not detected</string>
     <string name="start">start</string>
+    <string name="error_cannot_write">Cannot write image captured by camera.</string>
+    <string name="error_cannot_open">Cannot open camera.</string>
+    <string name="error_cannot_get_permission">Camera permission not available.</string>
+    <string name="error_not_having_camera">Your device does not have front camera.</string>
+    <string name="error_camera_permission_denied">Camera permission denied.</string>
 </resources>
