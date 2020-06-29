@@ -42,12 +42,11 @@
         </activity>
         <activity android:name=".ScrollRecyclerVideoActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="landscape" />
         <activity android:name=".OpenCVCamera"
             android:screenOrientation="landscape"
             android:configChanges="keyboardHidden|orientation" />
         <service android:name=".OpenCVCameraService" />
-        <service android:name="BackCameraService" />
     </application>
 
 </manifest>

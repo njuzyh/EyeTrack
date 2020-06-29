@@ -1,0 +1,7 @@
+Executable : C:\Users\12238\AppData\Local\Android\Sdk\cmake\3.10.2.4988404\bin\ninja.exe
+arguments : 
+-C
+D:\Android\TrackEyes-master\app\.cxx\cmake\release\x86
+native-lib
+jvmArgs : 
+

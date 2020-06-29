@@ -1,0 +1,2 @@
+ninja: Entering directory `D:\Android\TrackEyes-master\app\.cxx\cmake\release\x86'
+ninja: no work to do.

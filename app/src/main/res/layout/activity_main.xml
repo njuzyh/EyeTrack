@@ -8,11 +8,11 @@
     tools:context=".MainActivity">
 
     <!--    <EditText-->
-<!--        android:id="@+id/textView"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="match_parent"-->
-<!--        android:text="@string/face_not_found"-->
-<!--        android:textSize="20sp" />-->
+    <!--        android:id="@+id/textView"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="match_parent"-->
+    <!--        android:text="@string/face_not_found"-->
+    <!--        android:textSize="20sp" />-->
 
     <VideoView
         android:id="@+id/videoView"

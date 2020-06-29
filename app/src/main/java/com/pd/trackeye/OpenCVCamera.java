@@ -20,6 +20,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.widget.VideoView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraActivity;
@@ -51,9 +52,8 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
 
     private static final String TAG = "OCVSample::Activity";
 
+    private VideoView videoView;
     private CameraBridgeViewBase mOpenCvCameraView;
-    private boolean              mIsJavaCamera = true;
-    private MenuItem mItemSwitchCamera = null;
     private CascadeClassifier leftClassifier;
     private CascadeClassifier rightClassifier;
     private CascadeClassifier faceClassifier;
@@ -69,7 +69,6 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
     protected int mDThresh = 10;
     protected double mGradThresh = 25.0;
     protected int iris_pixel = 0;
-    private int LeftThreshold, RightThreshold, UpThreshold, DownThreshold;
     private int direction;
     private int left_iris_x, left_iris_y, right_iris_x, right_iris_y;
     private int pre_left_x, pre_left_y, pre_right_x, pre_right_y;
@@ -110,9 +109,11 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        setContentView(R.layout.tutorial1_surface_view);
+        setContentView(R.layout.main_view);
 
-        mOpenCvCameraView = (CameraBridgeViewBase)  findViewById(R.id.tutorial1_activity_java_surface_view);
+        videoView = findViewById(R.id.video);
+
+        mOpenCvCameraView = (CameraBridgeViewBase)  findViewById(R.id.camera_view);
 
         mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
 
@@ -123,6 +124,8 @@ public class OpenCVCamera extends CameraActivity implements CameraBridgeViewBase
         mDefault = new Size(mOpenCvCameraView.getWidth(), mOpenCvCameraView.getHeight());
         m65Size = new Size(100, 60);
         requestPermission();
+        videoView.setVideoURI(Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.videoplayback));
+        videoView.start();
     }
 
     @Override
